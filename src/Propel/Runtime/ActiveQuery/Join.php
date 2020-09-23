@@ -115,6 +115,11 @@ class Join
     protected $identifierQuoting = false;
 
     /**
+     * @var string
+     */
+    protected $indexHint;
+
+    /**
      * Constructor
      * Use it preferably with no arguments, and then use addCondition() and setJoinType()
      * Syntax with arguments used mainly for backwards compatibility
@@ -776,6 +781,10 @@ class Join
             $rightTableName = $this->getAdapter()->quoteIdentifierTable($rightTableName);
         }
 
+        if($this->indexHint){
+            $rightTableName .= ' ' . $this->indexHint;
+        }
+
         return sprintf(
             '%s %s ON %s',
             $this->getJoinType(),
@@ -838,4 +847,12 @@ class Join
     {
         $this->identifierQuoting = $identifierQuoting;
     }
+
+    /**
+     * @param string $index
+     */
+    public function setIndexHint(string $index){
+        $this->indexHint = $index;
+    }
+
 }

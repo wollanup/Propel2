@@ -271,6 +271,11 @@ class Criteria
     public $replacedColumns = [];
 
     /**
+     * @var array
+     */
+    protected $indexHint = [];
+
+    /**
      * Creates a new instance with the default capacity which corresponds to
      * the specified database.
      *
@@ -1936,8 +1941,14 @@ class Criteria
         // Handle joins
         // joins with a null join type will be added to the FROM clause and the condition added to the WHERE clause.
         // joins of a specified type: the LEFT side will be added to the fromClause and the RIGHT to the joinClause
+        /** @var ModelJoin $join */
         foreach ($this->getJoins() as $join) {
             $join->setAdapter($adapter);
+
+            // Index Hints on joins
+            if(array_key_exists($join->getRelationMap()->getName(), $this->indexHint)){
+                $join->setIndexHint($this->indexHint[$join->getRelationMap()->getName()]);
+            }
 
             // add 'em to the queues..
             if (!$fromClause) {
@@ -2077,6 +2088,7 @@ class Criteria
             }
         }
 
+
         // from / join tables quoted if it is necessary
         $fromClause = array_map([$this, 'quoteIdentifierTable'], $fromClause);
         $joinClause = $joinClause ? $joinClause : array_map([$this, 'quoteIdentifierTable'], $joinClause);
@@ -2091,6 +2103,9 @@ class Criteria
         if (!empty($joinClause) && count($fromClause) > 1) {
             $from .= implode(' CROSS JOIN ', $fromClause);
         } else {
+            if(count($fromClause) === 1 && isset($this->indexHint[''])){
+                $fromClause[0].= ' ' . $this->indexHint[''];
+            }
             $from .= implode(', ', $fromClause);
         }
 
@@ -2891,5 +2906,18 @@ class Criteria
     public function setIdentifierQuoting($identifierQuoting)
     {
         $this->identifierQuoting = $identifierQuoting;
+    }
+
+
+    /**
+     * @param string $index
+     * @param string $relationName
+     * @return $this|ModelCriteria A modified Criteria object.
+     */
+    public function addIndexHint(string $index, string $relationName = null){
+        $relationName = $relationName ?? '';
+        $this->indexHint[$relationName] = $index;
+
+        return $this;
     }
 }
